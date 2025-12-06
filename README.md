@@ -5,3 +5,5 @@ Resume template developed by Zack Crosley. Template available for use under MIT 
 # Building
 
 Run `compile-latex.yaml` workflow to build the pdf from latex files.
+
+`LaTeX Workshop: Build LaTeX project` can be run in vscode using the devcontainer.
