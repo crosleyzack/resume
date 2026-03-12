@@ -1,5 +1,17 @@
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.tex'
+      - 'src/**'
+      - '.github/workflows/compile-latex.yaml'
+
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build_latex:
     name: "build pdf"
@@ -7,10 +19,12 @@ jobs:
     steps:
       - name: Set up Git repository
         uses: actions/checkout@v4
+
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@v3
         with:
           root_file: resume.tex
+
       - name: Push new compiled resume
         run: |
           git config user.name crosleyzack
@@ -18,3 +32,43 @@ jobs:
           git add -f resume.pdf
           git diff --quiet && git diff --staged --quiet || git commit -m "[gh-action] Compile Resume"
           git push origin master
+
+  build_oci_layers:
+    name: "build and push OCI layers"
+    runs-on: ubuntu-24.04
+    needs: build_latex
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build OCI layer builder
+        run: |
+          cd src
+          go build -o resume-oci .
+
+      - name: Extract repository info
+        id: repo
+        run: |
+          # Convert repository name to lowercase (required for ghcr.io)
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repository=$REPO_LOWER" >> $GITHUB_OUTPUT
+
+      - name: Build OCI layout
+        run: |
+          cd src
+          ./resume-oci \
+            --repository "${{ steps.repo.outputs.repository }}" \
+            --tag latest \
+            --output ../oci-layout
+
+      - uses: imjasonh/setup-crane@v0.1
+      - env:
+          auth_token: ${{ secrets.auth_token }}
+      - run: |
+          crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:latest
+          crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}

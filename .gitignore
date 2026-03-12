@@ -2,3 +2,15 @@ resume.synctex.gz
 resume.aux
 resume.log
 resume.out
+
+# Go build artifacts
+src/resume-oci
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# OCI layout output
+oci-layout/
+src/oci-layout/
