@@ -24,17 +24,17 @@
 
 \begin{document}
 
-\resumename{Zackary Crosley}
-\resumecontact{Michigan,\href{mailto:mail@crosleyzack.com}{mail@crosleyzack.com},\href{https://crosleyzack.com}{crosleyzack.com}}
+\input{header}
 
 \section{Education}
 
-% \input{education/orsamac.tex}
+% \input{education/orsamac}
 \input{education/masters}
 \input{education/bachelors}
 
 \section{Experience}
 
+\input{experience/chainguard}
 \input{experience/censys}
 \input{experience/trac}
 \pagebreak
@@ -49,22 +49,17 @@
 
 \section{Proficiencies}
 
-\skills{Golang,Python,Java,\href{https://github.com/CrosleyZack/cse551}{Clojure},\href{https://github.com/CrosleyZack/project_euler}{Julia},SQL,Spanner,Postgres,Protobuf,gRPC,Redis,CI/CD,Kubernetes,Docker,Git,GCP,Pub/Sub,Linux,Bash,Vim}
-% Other proficiencies: C++, OpenMP, pwntools, scapy, grafana, Make, Taskfile, pandas, numpy, tilt
+\input{skills}
 
 \section{Honors and Activities}
-\vspace{3mm} % TODO not sure how to make this unnecessary.
-\input{honors/trac.tex}
-% \input{honors/education.tex}
-% \input{honors/volunteer.tex}
+
+\vspace{3mm}
+\input{honors/trac}
+% \input{honors/education}
+% \input{honors/volunteer}
 
 \vfill
 
-\begin{center}
-% Source Code at \faIcon[solid]{github} crosleyzack
-\href{https://github.com/crosleyzack}{\faIcon[solid]{github} crosleyzack}\hspace{5mm}\href{https://www.linkedin.com/in/crosleyzack/}{\faIcon[solid]{linkedin} crosleyzack}
-% TODO - add once font awesome is updated to v6
-% \faIcon[solid]{signal-messenger} crosleyzack.01
-\end{center}
+\input{footer}
 
 \end{document}

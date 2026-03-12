@@ -42,8 +42,7 @@
 % hyperlinks
 \RequirePackage[hidelinks]{hyperref}
 % Font awesome for social logos.
-% TODO - update to fontawesome6
-\RequirePackage{fontawesome5}
+\RequirePackage{fontawesome6}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Constants for use in template.
@@ -76,10 +75,10 @@
 \newcommand{\afterSection}{0mm}
 %   SubSection Object
 \newcommand{\beforeSubSection}{0mm}
-\newcommand{\afterSubSection}{1mm}
+\newcommand{\afterSubSection}{0mm}
 %   Paragraph Object
 \newcommand{\beforeParagraph}{0mm}
-\newcommand{\afterParagraph}{1mm}
+\newcommand{\afterParagraph}{0mm}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -127,7 +126,7 @@
 \newcommand{\sectionfont}{\fontsize{\sectionFontSize}{\sectionFontSize}\color{white}\bfseries}
 \setlength{\fboxsep}{\sectionBgPadding}
 \setlength{\fboxrule}{0mm}
-\titlespacing{\section}{0mm}{\beforeSection}{\afterSection}
+\titlespacing*{\section}{0mm}{\beforeSection}{\afterSection}
 \titleformat{\section}
   [display]
   {\sectionfont}
@@ -137,7 +136,7 @@
 
 % Format subsection header
 \newcommand{\subsectionfont}{\fontsize{\subsectionFontSize}{\subsectionFontSize}\color{accent}}
-\titlespacing{\subsection}{0mm}{\beforeSubSection}{\afterSubSection}
+\titlespacing*{\subsection}{0mm}{\beforeSubSection}{\afterSubSection}
 \titleformat{\subsection}
   [display]
   {\subsectionfont}
@@ -147,7 +146,7 @@
 
 % Format paragraph header
 \newcommand{\paragraphfont}{\fontsize{\mainFontSize}{\mainFontSize}\color{secondary}}
-\titlespacing{\paragraph}{0mm}{\beforeParagraph}{\afterParagraph}
+\titlespacing*{\paragraph}{0mm}{\beforeParagraph}{\afterParagraph}
 %   looper to print out items.
 \newcommand{\printheader}[1]{\setcounter{mycount}{0}
                              \@for\tmp:=#1\do{
