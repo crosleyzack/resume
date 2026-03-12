@@ -70,12 +70,13 @@
 \newcommand{\subtitleDelimSpacing}{3mm}
 \newcommand{\paragraphDelimSpacing}{0mm}
 %   Section object
+\newcommand{\sectionColor}{white}
 \newcommand{\sectionBgPadding}{0.75mm}
 \newcommand{\beforeSection}{0mm}
 \newcommand{\afterSection}{0mm}
 %   SubSection Object
 \newcommand{\beforeSubSection}{0mm}
-\newcommand{\afterSubSection}{0mm}
+\newcommand{\afterSubSection}{1mm}
 %   Paragraph Object
 \newcommand{\beforeParagraph}{0mm}
 \newcommand{\afterParagraph}{0mm}
@@ -123,7 +124,7 @@
 \color{secondary}
 
 % Format section header
-\newcommand{\sectionfont}{\fontsize{\sectionFontSize}{\sectionFontSize}\color{white}\bfseries}
+\newcommand{\sectionfont}{\fontsize{\sectionFontSize}{\sectionFontSize}\color{\sectionColor}\bfseries}
 \setlength{\fboxsep}{\sectionBgPadding}
 \setlength{\fboxrule}{0mm}
 \titlespacing*{\section}{0mm}{\beforeSection}{\afterSection}
