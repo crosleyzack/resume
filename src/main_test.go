@@ -43,6 +43,18 @@ Test content with links.`,
 		}
 	}
 
+	// Create resume.tex that references the test files
+	resumeContent := `\documentclass{article}
+\begin{document}
+\input{simple}
+\input{with_list}
+\input{with_links}
+\end{document}`
+	resumePath := filepath.Join(testTexDir, "resume.tex")
+	if err := os.WriteFile(resumePath, []byte(resumeContent), 0644); err != nil {
+		t.Fatalf("Failed to write resume.tex: %v", err)
+	}
+
 	// Test findTexFiles
 	t.Run("FindTexFiles", func(t *testing.T) {
 		files, err := findTexFiles(testTexDir)
@@ -51,6 +63,14 @@ Test content with links.`,
 		}
 		if len(files) != len(testFiles) {
 			t.Errorf("Expected %d files, got %d", len(testFiles), len(files))
+		}
+
+		// Verify files are returned in the order specified in resume.tex
+		expectedOrder := []string{"simple.tex", "with_list.tex", "with_links.tex"}
+		for i, file := range files {
+			if filepath.Base(file) != expectedOrder[i] {
+				t.Errorf("Expected file at position %d to be %s, got %s", i, expectedOrder[i], filepath.Base(file))
+			}
 		}
 	})
 
@@ -277,6 +297,50 @@ Content line
 				t.Errorf("Expected:\n%q\n\nGot:\n%q", tt.expected, result)
 			}
 		})
+	}
+}
+
+// TestFindTexFilesWithComments tests that findTexFiles properly handles commented input commands.
+func TestFindTexFilesWithComments(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create test files
+	testFiles := []string{"file1.tex", "file2.tex", "file3.tex"}
+	for _, filename := range testFiles {
+		path := filepath.Join(tempDir, filename)
+		if err := os.WriteFile(path, []byte("test content"), 0644); err != nil {
+			t.Fatalf("Failed to write test file %s: %v", filename, err)
+		}
+	}
+
+	// Create resume.tex with some commented input commands
+	resumeContent := `\documentclass{article}
+\begin{document}
+\input{file1}
+% \input{file2}
+\input{file3} % inline comment
+\end{document}`
+	resumePath := filepath.Join(tempDir, "resume.tex")
+	if err := os.WriteFile(resumePath, []byte(resumeContent), 0644); err != nil {
+		t.Fatalf("Failed to write resume.tex: %v", err)
+	}
+
+	files, err := findTexFiles(tempDir)
+	if err != nil {
+		t.Fatalf("findTexFiles failed: %v", err)
+	}
+
+	// Should only find file1 and file3, not file2 (which is commented)
+	if len(files) != 2 {
+		t.Errorf("Expected 2 files, got %d", len(files))
+	}
+
+	expectedFiles := []string{"file1.tex", "file3.tex"}
+	for i, file := range files {
+		basename := filepath.Base(file)
+		if basename != expectedFiles[i] {
+			t.Errorf("Expected file %s at position %d, got %s", expectedFiles[i], i, basename)
+		}
 	}
 }
 

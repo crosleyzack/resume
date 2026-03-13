@@ -101,26 +101,53 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// findTexFiles recursively walks the directory tree from root and returns a list of all
-// .tex file paths found, excluding resume.tex. Returns an error if the walk fails.
+// findTexFiles parses resume.tex and extracts all files referenced by \input{...} commands
+// in the order they appear. Only non-commented input commands are included.
+// Returns the list of .tex file paths or an error if parsing fails.
 func findTexFiles(root string) ([]string, error) {
-	var texFiles []string
+	resumePath := filepath.Join(root, "resume.tex")
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	// Read resume.tex
+	content, err := os.ReadFile(resumePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read resume.tex: %w", err)
+	}
+
+	var texFiles []string
+	lines := strings.Split(string(content), "\n")
+
+	// Regex to match \input{filename} commands
+	inputRegex := regexp.MustCompile(`\\input\{([^}]+)\}`)
+
+	for _, line := range lines {
+		// Skip commented lines
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "%") {
+			continue
 		}
 
-		if !info.IsDir() && strings.HasSuffix(path, ".tex") {
-			if info.Name() != "resume.tex" {
-				texFiles = append(texFiles, path)
+		// Remove inline comments
+		if idx := strings.Index(line, "%"); idx != -1 {
+			line = line[:idx]
+		}
+
+		// Find \input{...} commands
+		matches := inputRegex.FindAllStringSubmatch(line, -1)
+		for _, match := range matches {
+			if len(match) > 1 {
+				filename := match[1]
+				// Add .tex extension if not present
+				if !strings.HasSuffix(filename, ".tex") {
+					filename += ".tex"
+				}
+				// Make path relative to root
+				fullPath := filepath.Join(root, filename)
+				texFiles = append(texFiles, fullPath)
 			}
 		}
+	}
 
-		return nil
-	})
-
-	return texFiles, err
+	return texFiles, nil
 }
 
 // texToLayer reads a .tex file, converts it to markdown, and creates an OCI layer
@@ -144,33 +171,55 @@ func texToLayer(texPath string) (v1.Layer, error) {
 }
 
 // createOCIImage takes a slice of layers and creates an OCI image with those layers.
-// It starts with an empty image, appends all layers, and sets appropriate metadata
-// including author, creation time, and platform identifiers. Returns the image or an error.
+// It sets a custom config media type and stores resume metadata in config labels.
 func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 	// Start with an empty image
 	img := empty.Image
 
-	// Append the layer to the image
+	// Append the layers to the image
 	img, err := mutate.AppendLayers(img, layers...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to append layer: %w", err)
 	}
 
-	// Update the config to set proper media types
+	// Set manifest media type to OCI
+	img = mutate.MediaType(img, types.OCIManifestSchema1)
+
+	// Set the custom config media type
+	img = mutate.ConfigMediaType(img, "application/vnd.crosleyzack.resume.config.v1+json")
+
+	// Get the current config file to preserve RootFS and History
 	configFile, err := img.ConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config file: %w", err)
 	}
 
-	// Ensure the config indicates this is a custom artifact type
+	now := time.Now()
+
+	// Store custom config in labels
+	configFile.Config.Labels = map[string]string{
+		"author":      "crosleyzack",
+		"created":     now.Format(time.RFC3339),
+		"version":     "1.0",
+		"title":       "Zack Crosley's Resume",
+		"description": "OCI artifact containing resume content in markdown format",
+		"license":     "MIT",
+		"source":      "https://github.com/crosleyzack/resume",
+		"why":         "An excellent question with no good answer",
+	}
 	configFile.Author = "crosleyzack"
-	configFile.Created = v1.Time{Time: time.Now()}
+	configFile.Created = v1.Time{Time: now}
 	configFile.Architecture = "unknown"
 	configFile.OS = "unknown"
+	configFile.History = []v1.History{
+		{
+			Created: v1.Time{Time: now},
+		},
+	}
 
 	img, err = mutate.ConfigFile(img, configFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update config: %w", err)
+		return nil, fmt.Errorf("failed to update config file: %w", err)
 	}
 
 	return img, nil

@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   build_oci_layers:
@@ -44,9 +45,21 @@ jobs:
             --tag latest \
             --output ../oci-layout
 
-      - uses: imjasonh/setup-crane@v0.1
-      - env:
-          auth_token: ${{ secrets.auth_token }}
-      - run: |
+      - name: Set up crane
+        uses: imjasonh/setup-crane@v0.1
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push OCI images
+        run: |
           crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:latest
           crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.8.0
+
+      - name: Sign OCI images with cosign
+        run: |
+          cosign sign --yes ghcr.io/${{ steps.repo.outputs.repository }}:latest
+          cosign sign --yes ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}
