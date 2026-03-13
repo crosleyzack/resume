@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,30 +19,17 @@ import (
 )
 
 const (
-	// DSSEMediaType is the media type for DSSE envelope layers
-	DSSEMediaType = "application/vnd.dsse.envelope.v1+json"
-	// PayloadType for LaTeX files
-	PayloadType = "application/vnd.latex.tex+plain"
+	MIME = "text/markdown"
 )
-
-// DSSEEnvelope represents a Dead Simple Signing Envelope
-type DSSEEnvelope struct {
-	Payload     string      `json:"payload"`
-	PayloadType string      `json:"payloadType"`
-	Signatures  []Signature `json:"signatures"`
-}
-
-// Signature represents a signature in a DSSE envelope
-type Signature struct {
-	KeyID string `json:"keyid,omitempty"`
-	Sig   string `json:"sig"`
-}
 
 var (
 	outputDir string
 	rootDir   string
 )
 
+// main is the entry point for the resume-oci CLI tool.
+// It sets up the cobra command with flags for output directory and root directory,
+// then executes the command to build OCI images from .tex files.
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "resume-oci",
@@ -60,6 +46,9 @@ func main() {
 	}
 }
 
+// run executes the main workflow of finding .tex files, converting them to layers,
+// creating an OCI image with all layers, and writing the result to an OCI layout directory.
+// It returns an error if any step fails.
 func run(cmd *cobra.Command, args []string) error {
 	slog.Info("Building OCI layers for .tex files",
 		"output_directory", outputDir,
@@ -110,6 +99,8 @@ func run(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// findTexFiles recursively walks the directory tree from root and returns a list of all
+// .tex file paths found, excluding resume.tex. Returns an error if the walk fails.
 func findTexFiles(root string) ([]string, error) {
 	var texFiles []string
 
@@ -130,14 +121,8 @@ func findTexFiles(root string) ([]string, error) {
 	return texFiles, err
 }
 
-func createDSSEEnvelope(content []byte) *DSSEEnvelope {
-	return &DSSEEnvelope{
-		Payload:     string(content),
-		PayloadType: PayloadType,
-		Signatures:  []Signature{}, // Empty signatures for unsigned envelope
-	}
-}
-
+// texToLayer reads a .tex file, converts it to markdown, and creates an OCI layer
+// containing the markdown content. Returns the layer or an error if conversion fails.
 func texToLayer(texPath string) (v1.Layer, error) {
 	// Read the .tex file
 	content, err := os.ReadFile(texPath)
@@ -145,20 +130,10 @@ func texToLayer(texPath string) (v1.Layer, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	plaintext, err := latexToPlaintext(content)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert LaTeX to plaintext: %w", err)
-	}
+	// TODO improve this once a library is found
+	markdown := parseTexToMarkdown(string(content))
 
-	// Create DSSE envelope
-	envelope := createDSSEEnvelope(plaintext)
-	envelopeJSON, err := json.Marshal(envelope)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal DSSE envelope: %w", err)
-	}
-
-	// Create a layer from the DSSE envelope
-	layer, err := createDSSELayer(envelopeJSON)
+	layer, err := createLayer(markdown)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create layer: %w", err)
 	}
@@ -166,6 +141,9 @@ func texToLayer(texPath string) (v1.Layer, error) {
 	return layer, nil
 }
 
+// createOCIImage takes a slice of layers and creates an OCI image with those layers.
+// It starts with an empty image, appends all layers, and sets appropriate metadata
+// including author, creation time, and platform identifiers. Returns the image or an error.
 func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 	// Start with an empty image
 	img := empty.Image
@@ -196,11 +174,14 @@ func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 	return img, nil
 }
 
-func createDSSELayer(data []byte) (v1.Layer, error) {
+// createLayer creates an OCI layer from byte data with a custom media type (text/markdown).
+// The layer is created using a tarball opener that wraps the data in a ReadCloser.
+// Returns the layer or an error if creation fails.
+func createLayer(data string) (v1.Layer, error) {
 	// Create a custom layer with DSSE media type
 	layer, err := tarball.LayerFromOpener(func() (io.ReadCloser, error) {
-		return io.NopCloser(strings.NewReader(string(data))), nil
-	}, tarball.WithMediaType(types.MediaType(DSSEMediaType)))
+		return io.NopCloser(strings.NewReader(data)), nil
+	}, tarball.WithMediaType(types.MediaType(MIME)))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create layer: %w", err)
@@ -209,11 +190,9 @@ func createDSSELayer(data []byte) (v1.Layer, error) {
 	return layer, nil
 }
 
-func latexToPlaintext(latexContent []byte) ([]byte, error) {
-	// TODO there must be a library for this...
-	return latexContent, nil
-}
-
+// writeOCILayout writes an OCI image to a directory in OCI layout format.
+// It creates the output directory if needed, initializes an OCI layout, and appends
+// the image with appropriate OCI annotations. Returns an error if any step fails.
 func writeOCILayout(img v1.Image, outputPath string) error {
 	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(outputPath, 0755); err != nil {

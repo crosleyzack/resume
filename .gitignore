@@ -5,6 +5,8 @@ resume.out
 
 # Go build artifacts
 src/resume-oci
+bin/*
+pkg/*
 *.exe
 *.exe~
 *.dll

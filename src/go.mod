@@ -1,6 +1,6 @@
 module github.com/crosleyzack/resume-oci
 
-go 1.24
+go 1.22
 
 require (
 	codeberg.org/go-latex/latex v0.2.0
