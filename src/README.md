@@ -1,19 +1,18 @@
 # Resume OCI Layer Builder
 
-This Go program creates OCI image layers with DSSE (Dead Simple Signing Envelope) format for each `.tex` file in the resume project.
+This Go program converts `.tex` files to Markdown and packages them as OCI image layers for distribution and archival.
 
 ## Features
 
 - Scans for all `.tex` files in the parent directory
-- Creates DSSE envelopes with LaTeX content
-  - TODO parse out latex into plaintext
-- Builds OCI image with layers using custom media type: `application/vnd.dsse.envelope.v1+json`
+- Converts latex into markdown
+- Builds OCI image with layers using media type: `text/markdown`
 - Writes OCI layout to local directory for inspection or registry push
 
 ## Building
 
 ```bash
-go build -o resume-oci .
+cd src && go build -o resume-oci .
 ```
 
 ## Usage
@@ -21,7 +20,11 @@ go build -o resume-oci .
 ### Create OCI layout
 
 ```bash
+# Build from parent directory (default)
 ./resume-oci
+
+# Specify custom directories
+./resume-oci --root /path/to/resume --output my-oci-layout
 ```
 
 ### Push to registry using crane
@@ -32,6 +35,7 @@ go build -o resume-oci .
 
 # Push using crane
 crane push oci-layout ghcr.io/username/resume:latest
+crane push oci-layout ghcr.io/username/resume:$(git rev-parse --short HEAD)
 ```
 
 ## Command-line Options
@@ -39,39 +43,67 @@ crane push oci-layout ghcr.io/username/resume:latest
 - `--output, -O`: Output directory for OCI layout (default: `oci-layout`)
 - `--root, -d`: Root directory to search for .tex files (default: `..`)
 
-## DSSE Envelope Format
+## Layer Content Format
 
-Each `.tex` file is wrapped in a DSSE envelope with the following structure:
+Each `.tex` file is converted to Markdown and stored as a layer:
 
-```json
-{
-  "payload": "<base64-encoded LaTeX content>",
-  "payloadType": "application/vnd.latex.tex+plain",
-  "signatures": []
-}
+**Input (LaTeX):**
+```latex
+\subsection{Software Engineer}
+\paragraph{\href{https://example.com}{Company Name},Engineering,Jan 2020 -- Present}
+\begin{itemize}
+\item Developed APIs and microservices
+\item Created comprehensive test coverage
+\end{itemize}
 ```
 
-The signatures array is empty as this implementation doesn't include cryptographic signing... yet.
+**Output (Markdown in layer):**
+```markdown
+## Software Engineer
 
-**Note**: Currently, the payload contains raw LaTeX content (including commands and comments) encoded in base64. Future versions may convert LaTeX to plaintext before encoding.
+[Company Name](https://example.com),Engineering,Jan 2020 -- Present
+
+- Developed APIs and microservices
+- Created comprehensive test coverage
+```
+
+This conversion is done via regex, as there is not a good existing library for this, surprisingly.
 
 ## OCI Image Structure
 
 The program creates a single OCI image with:
-- **One layer per `.tex` file**: Each layer contains a DSSE envelope
-- **Layer media type**: `application/vnd.dsse.envelope.v1+json`
-- **Architecture/OS**: Set to `unknown` (this is a data artifact, not executable)
+- **One layer per `.tex` file**: Each layer contains markdown content
+- **Layer media type**: `text/markdown`
+- **Image annotations**:
+  - `org.opencontainers.image.created`: ISO 8601 timestamp
+  - `org.opencontainers.image.authors`: `crosleyzack`
+  - `org.opencontainers.image.url`: `github.com/crosleyzack/resume`
+  - `org.opencontainers.image.source`: `github.com/crosleyzack/resume`
+  - `org.opencontainers.image.licenses`: `MIT`
+  - `org.opencontainers.image.title`: `Zack Crosley's Resume`
+  - `org.opencontainers.image.description`: Resume content as OCI artifact
+- **Architecture/OS**: Set to `unknown` (data artifact, not executable)
 
-## Example Output
+## Testing
 
-```
-2026/03/12 15:26:42 INFO Building OCI layers for .tex files output_directory=oci-layout root_directory=/home/user/resume
-2026/03/12 15:26:42 INFO Found .tex files count=18
-2026/03/12 15:26:42 INFO Created OCI image digest=sha256:d6b0ca21720175e1078a45b781962136968b0e6212e87a01eaf24a0496b8847c layer_count=18
-2026/03/12 15:26:42 INFO Image written to OCI layout path=oci-layout
-2026/03/12 15:26:42 INFO OCI layout written successfully output_directory=oci-layout
+Run the comprehensive test suite:
+
+```bash
+cd src
+go test -v
 ```
 
 ## Integration with CI/CD
 
-See the GitHub Actions workflow in [../.github/workflows/compile-latex.yaml](../.github/workflows/compile-latex.yaml) for an example of how to integrate this into your build pipeline.
+See the GitHub Actions workflow in [../.github/workflows/oci-publish.yaml](../.github/workflows/oci-publish.yaml) for automated building and publishing to GitHub Container Registry.
+
+## Development Notes
+
+### LaTeX Parsing
+
+The current implementation uses a custom LaTeX parser. There's a TODO to replace this with a proper LaTeX library once a suitable one is found or created. The current parser handles common resume LaTeX commands but may not support all LaTeX features.
+
+### Future Enhancements
+
+- Replace custom parser with robust LaTeX library
+- Add validation and signing for OCI manifest completeness
