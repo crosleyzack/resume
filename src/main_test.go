@@ -90,7 +90,7 @@ Test content with links.`,
 		if err != nil {
 			t.Fatalf("Failed to get media type: %v", err)
 		}
-		expectedMediaType := types.MediaType(MIME)
+		expectedMediaType := types.MediaType(LayerMIME)
 		if mediaType != expectedMediaType {
 			t.Errorf("Expected media type %s, got %s", expectedMediaType, mediaType)
 		}
@@ -271,8 +271,8 @@ func TestParseTexToMarkdown(t *testing.T) {
 			expected: "- First item\n  - Nested item\n- Second item\n",
 		},
 		{
-			name: "Href in paragraph",
-			input: `\paragraph{Visit \href{https://example.com}{Example Link} for more}`,
+			name:     "Href in paragraph",
+			input:    `\paragraph{Visit \href{https://example.com}{Example Link} for more}`,
 			expected: "Visit [Example Link](https://example.com) for more\n",
 		},
 		{

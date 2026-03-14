@@ -21,7 +21,11 @@ import (
 )
 
 const (
-	MIME = "text/markdown"
+	LayerMIME     = "text/markdown"
+	ConfigMIME    = "application/vnd.crosleyzack.resume.config.v1+json"
+	ImageMIME     = "application/vnd.crosleyzack.resume.v1"
+	Author        = "crosleyzack"
+	GitRepository = "https://github.com/crosleyzack/resume"
 )
 
 var (
@@ -35,7 +39,7 @@ var (
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "resume-oci",
-		Short: "Build OCI layers with DSSE envelopes for .tex files",
+		Short: "Build OCI image with layers of .tex files as markdown",
 		RunE:  run,
 	}
 
@@ -186,7 +190,7 @@ func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 	img = mutate.MediaType(img, types.OCIManifestSchema1)
 
 	// Set the custom config media type
-	img = mutate.ConfigMediaType(img, "application/vnd.crosleyzack.resume.config.v1+json")
+	img = mutate.ConfigMediaType(img, ConfigMIME)
 
 	// Get the current config file to preserve RootFS and History
 	configFile, err := img.ConfigFile()
@@ -196,18 +200,11 @@ func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 
 	now := time.Now()
 
+	annotations := getAnnotations(&now)
+
 	// Store custom config in labels
-	configFile.Config.Labels = map[string]string{
-		"author":      "crosleyzack",
-		"created":     now.Format(time.RFC3339),
-		"version":     "1.0",
-		"title":       "Zack Crosley's Resume",
-		"description": "OCI artifact containing resume content in markdown format",
-		"license":     "MIT",
-		"source":      "https://github.com/crosleyzack/resume",
-		"why":         "An excellent question with no good answer",
-	}
-	configFile.Author = "crosleyzack"
+	configFile.Config.Labels = annotations
+	configFile.Author = Author
 	configFile.Created = v1.Time{Time: now}
 	configFile.Architecture = "unknown"
 	configFile.OS = "unknown"
@@ -222,6 +219,9 @@ func createOCIImage(layers []v1.Layer) (v1.Image, error) {
 		return nil, fmt.Errorf("failed to update config file: %w", err)
 	}
 
+	// Add manifest-level annotations (displayed by GitHub)
+	img = mutate.Annotations(img, annotations).(v1.Image)
+
 	return img, nil
 }
 
@@ -233,7 +233,7 @@ func createLayer(data string) (v1.Layer, error) {
 	layer, err := tarball.LayerFromOpener(func() (io.ReadCloser, error) {
 		return io.NopCloser(strings.NewReader(data)), nil
 	},
-		tarball.WithMediaType(types.MediaType(MIME)),
+		tarball.WithMediaType(types.MediaType(LayerMIME)),
 		tarball.WithCompression(compression.None))
 
 	if err != nil {
@@ -257,21 +257,13 @@ func writeOCILayout(img v1.Image, outputPath string) error {
 		Add: img,
 		Descriptor: v1.Descriptor{
 			MediaType:    types.OCIManifestSchema1,
-			ArtifactType: "application/vnd.crosleyzack.resume.v1",
+			ArtifactType: ImageMIME,
 			Platform: &v1.Platform{
 				Architecture: "unknown",
 				OS:           "unknown",
 			},
-			URLs: []string{"https://github.com/crosleyzack/resume"},
-			Annotations: map[string]string{
-				"org.opencontainers.image.created":     time.Now().Format(time.RFC3339),
-				"org.opencontainers.image.authors":     "crosleyzack",
-				"org.opencontainers.image.url":         "github.com/crosleyzack/resume",
-				"org.opencontainers.image.source":      "github.com/crosleyzack/resume",
-				"org.opencontainers.image.licenses":    "MIT",
-				"org.opencontainers.image.title":       "Zack Crosley's Resume",
-				"org.opencontainers.image.description": "OCI image containing DSSE envelopes of Zack Crosley's resume",
-			},
+			URLs:        []string{GitRepository},
+			Annotations: getAnnotations(nil),
 		},
 	})
 
@@ -283,6 +275,32 @@ func writeOCILayout(img v1.Image, outputPath string) error {
 
 	slog.Info("Image written to OCI layout", "path", outputPath)
 	return nil
+}
+
+var annotations map[string]string
+
+// getAnnotations memoized OCI annotations
+func getAnnotations(now *time.Time) map[string]string {
+	if annotations == nil {
+		if now == nil {
+			n := time.Now()
+			now = &n
+		}
+		annotations = map[string]string{
+			"org.opencontainers.image.created":       now.Format(time.RFC3339),
+			"org.opencontainers.image.authors":       Author,
+			"org.opencontainers.image.url":           GitRepository,
+			"org.opencontainers.image.documentation": GitRepository,
+			"org.opencontainers.image.source":        GitRepository,
+			"org.opencontainers.image.version":       "v0.1.0",
+			"org.opencontainers.image.revision":      "",
+			"org.opencontainers.image.licenses":      "MIT",
+			"org.opencontainers.image.title":         "Zack Crosley's Resume",
+			"org.opencontainers.image.description":   "OCI image containing Zack Crosley's resume",
+			"question.why":                           "An excellent question with no good answer",
+		}
+	}
+	return annotations
 }
 
 // TODO there should be a golang library for latex, it appears there isn't.

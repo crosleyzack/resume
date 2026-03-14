@@ -48,6 +48,9 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ github.token }}" | crane auth login ghcr.io -u ${{ github.actor }} --password-stdin
 
+        # NOTE: for this to work you have to add the
+        # - add the resume repo as the associate repository
+        # - update package settings `Manage Actions access` to give this repo write permissions
       - name: Push OCI images
         run: |
           crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:latest
@@ -56,7 +59,26 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.8.0
 
-      - name: Sign OCI images with cosign
+      - name: Sign OCI images with cosign (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "true"
         run: |
+          # Keyless signing using GitHub OIDC token (id-token: write permission)
+          # Signatures are stored in the transparency log (Rekor) and on the registry
           cosign sign --yes ghcr.io/${{ steps.repo.outputs.repository }}:latest
           cosign sign --yes ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}
+
+      - name: Verify signatures
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          # Verify the keyless signatures using the OIDC issuer
+          cosign verify \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ghcr.io/${{ steps.repo.outputs.repository }}:latest
+
+          cosign verify \
+            --certificate-identity-regexp="^https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}
