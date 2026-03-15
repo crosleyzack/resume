@@ -106,4 +106,3 @@ The current implementation uses a custom LaTeX parser. There's a TODO to replace
 ### Future Enhancements
 
 - Replace custom parser with robust LaTeX library
-- Add validation and signing for OCI manifest completeness
