@@ -11,6 +11,8 @@ Run `compile-latex.yaml` workflow to build the pdf from latex files.
 
 Finally, you can use nix via `nix-shell -p texliveFull --run "pdflatex resume.tex"`
 
+---
+
 ### But what if I want an inefficient but nerdy way to read your resume?
 
 Then you can view it as an cryptographically-signed OCI artifact at [ghcr.io/crosleyzack/resume:latest](ghcr.io/crosleyzack/resume:latest). You can do this using tools like [crane](https://github.com/google/go-containerregistry/tree/main/cmd/crane):
