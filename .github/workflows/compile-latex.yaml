@@ -3,7 +3,7 @@ on:
 jobs:
   build_latex:
     name: "build pdf"
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     steps:
       - name: Set up Git repository
         uses: actions/checkout@v4
