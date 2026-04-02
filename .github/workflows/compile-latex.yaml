@@ -15,7 +15,7 @@ jobs:
       - name: Push new compiled resume
         run: |
           git config user.name crosleyzack
-          git config user.email crosleyzack@gmail.com
+          git config user.email mail@crosleyzack.com
           git add -f resume.pdf
           git diff --quiet && git diff --staged --quiet || git commit -m "[gh-action] Compile Resume"
           git push origin master
