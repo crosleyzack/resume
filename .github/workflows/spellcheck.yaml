@@ -1,0 +1,17 @@
+name: Spellcheck
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  spellcheck:
+    name: spellcheck tex files
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1.45.1
+        with:
+          files: "**/*.tex"
+
