@@ -43,6 +43,8 @@
 \RequirePackage[hidelinks]{hyperref}
 % Font awesome for social logos.
 \RequirePackage{fontawesome6}
+\RequirePackage{transparent}
+\RequirePackage{hyperref}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Constants for use in template.
