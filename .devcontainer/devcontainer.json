@@ -8,13 +8,7 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/prulloac/devcontainer-features/latex:1": {
-			"packages": [
-				"titlesec",
-				"xcolor",
-				"setspace",
-				"enumitem",
-				"fontawesome6"
-			]
+			"packages": "titlesec,xcolor,setspace,enumitem,fontawesome6"
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -22,9 +16,133 @@
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pdflatex ${localWorkspaceFolder}/resume.tex",
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			// The latex feature installs this extension, but declare it so the
+			// settings below always have an owner.
+			"extensions": [
+				"James-Yu.latex-workshop"
+			],
+			"settings": {
+				// pdflatex is the only tool. The latex feature also installs
+				// latexmk, but this project does not need the extra
+				// dependency-tracking layer. The feature does not install
+				// latexindent or chktex, so the formatter and the linter stay
+				// off.
+				"latex-workshop.latex.tools": [
+					{
+						"name": "pdflatex",
+						"command": "pdflatex",
+						"args": [
+							"-synctex=1",
+							"-interaction=nonstopmode",
+							"-file-line-error",
+							"-output-directory=%OUTDIR%",
+							"%DOC%"
+						],
+						"env": {}
+					}
+				],
+				// Run two passes. hyperref writes the bookmark tree to
+				// resume.out on the first pass, and the second pass reads it
+				// back to put the links in the correct places.
+				"latex-workshop.latex.recipes": [
+					{
+						"name": "pdflatex x 2",
+						"tools": [
+							"pdflatex",
+							"pdflatex"
+						]
+					}
+				],
+				"latex-workshop.latex.recipe.default": "first",
+				// Write resume.pdf next to resume.tex, which is the path the
+				// compile-latex workflow commits.
+				"latex-workshop.latex.outDir": "%DIR%",
+				// Build on save only. The default, onFileChange, also rebuilds
+				// for the files that the workflow writes.
+				"latex-workshop.latex.autoBuild.run": "onSave",
+				// resume.tex is the only root file, so do not ask for it.
+				"latex-workshop.latex.rootFile.doNotPrompt": true,
+				// Keep the intermediate files after a good build for the
+				// incremental passes, and remove them after a failure to stop
+				// a bad .aux file from breaking the next build.
+				"latex-workshop.latex.autoClean.run": "onFailed",
+				"latex-workshop.latex.clean.fileTypes": [
+					"*.aux",
+					"*.fdb_latexmk",
+					"*.fls",
+					"*.log",
+					"*.out",
+					"*.synctex.gz",
+					"*.toc"
+				],
+				"latex-workshop.latex.clean.subfolder.enabled": true,
+				// The Go module cache holds .tex files, and one of them is a
+				// candidate root file. Keep root detection out of it so that
+				// resume.tex is the only candidate.
+				"latex-workshop.latex.search.rootFiles.exclude": [
+					"**/pkg/mod/**"
+				],
+				// This list replaces the default, so it repeats the default
+				// patterns and adds the module cache.
+				"latex-workshop.latex.watch.files.ignore": [
+					"**/pkg/mod/**",
+					"**/*.aux",
+					"**/*.bbx",
+					"**/*.bbl",
+					"**/*.cbx",
+					"**/*.cfg",
+					"**/*.clo",
+					"**/*.cnf",
+					"**/*.def",
+					"**/*.dfu",
+					"**/*.enc",
+					"**/*.fd",
+					"**/*.fmt",
+					"**/*.gls",
+					"**/*.lbx",
+					"**/*.map",
+					"**/*.mkii",
+					"**/*.out",
+					"**/*.pfb",
+					"**/*.tfm",
+					"**/*.vf",
+					"**/*.code.tex",
+					"**/*.sty",
+					"**/texmf-{dist,var}/**",
+					"**/Local/MiKTeX/**",
+					"**/Local/Programs/MiKTeX/**",
+					"**/Roaming/MiKTeX/**",
+					"**/Program*/MiKTeX*/**",
+					"**/.miktex/texmfs/**",
+					"/var/cache/miktex-texmf/**",
+					"/usr/local/share/miktex-texmf/**",
+					"**/Library/Application Support/MiKTeX/texmfs/**",
+					"/dev/null"
+				],
+				// Stop the file watcher from walking the Go module cache and
+				// the build output.
+				"files.watcherExclude": {
+					"**/pkg/**": true,
+					"**/bin/**": true
+				},
+				// Show the PDF in an editor tab. An external viewer is not
+				// available in the container.
+				"latex-workshop.view.pdf.viewer": "tab",
+				"latex-workshop.synctex.afterBuild.enabled": true,
+				"[latex]": {
+					"editor.wordWrap": "on",
+					"editor.formatOnSave": false,
+					"files.trimTrailingWhitespace": true
+				}
+			}
+		}
+	},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 	"workspaceFolder": "/workspace",
-	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z"
+	// Docker rejects the SELinux "Z" flag in --mount syntax, and this host does
+	// not use SELinux, so the bind mount carries no relabel option.
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind"
 }
