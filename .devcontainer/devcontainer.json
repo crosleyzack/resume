@@ -8,7 +8,7 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/prulloac/devcontainer-features/latex:1": {
-			"packages": "titlesec,xcolor,setspace,enumitem,fontawesome6"
+			"packages": "titlesec,xcolor,setspace,enumitem,fontawesome6,transparent,hyperref"
 		}
 	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
