@@ -5,6 +5,9 @@ jobs:
     name: "build pdf"
     # ubuntu-slim is usually preferred, but latex-action requires docker-in-docker
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - name: Set up Git repository
         uses: actions/checkout@v4
@@ -21,6 +24,8 @@ jobs:
           git config --global commit.gpgsign true
           git config --global tag.gpgsign true
       - name: Push new compiled resume
+        env:
+          GITSIGN_OIDC_MODE: ambient
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
