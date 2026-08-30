@@ -1,5 +1,7 @@
 ## Description
 
+[![Dependabot Updates](https://github.com/crosleyzack/resume/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/crosleyzack/resume/actions/workflows/dependabot/dependabot-updates)
+
 Resume template developed by Zack Crosley. Template available for use under MIT License.
 The actual resume document is `resume.pdf`
 
