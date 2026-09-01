@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.45.1
+      - uses: crate-ci/typos@v1.50.0
         with:
           files: "**/*.tex"
 
