@@ -16,7 +16,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -56,8 +56,9 @@ jobs:
           crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:latest
           crane push oci-layout ghcr.io/${{ steps.repo.outputs.repository }}:${{ github.sha }}
 
+      # NOTE: err in 4.1.0+, see https://github.com/sigstore/cosign-installer/issues/222
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4.1.2
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Sign OCI images with cosign (keyless)
         env:
